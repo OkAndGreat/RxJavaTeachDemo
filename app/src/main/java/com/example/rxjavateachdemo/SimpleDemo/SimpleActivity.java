@@ -13,10 +13,13 @@ import io.reactivex.rxjava3.core.ObservableEmitter;
 import io.reactivex.rxjava3.core.ObservableOnSubscribe;
 import io.reactivex.rxjava3.core.Observer;
 import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.functions.Consumer;
 import io.reactivex.rxjava3.functions.Function;
 
 public class SimpleActivity extends AppCompatActivity {
     private static final String TAG = "SimpleActivity";
+
+    Disposable disposable;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,7 +27,7 @@ public class SimpleActivity extends AppCompatActivity {
         setContentView(R.layout.activity_simple);
 
         //demo1
-        //讲解观察者和被观察者怎么完成订阅过程并传递消息的
+        //观察者和被观察者怎么完成订阅过程并传递消息的
         Observable.create(new ObservableOnSubscribe<Integer>() {
             @Override
             public void subscribe(@NonNull ObservableEmitter<Integer> emitter) {
@@ -36,7 +39,7 @@ public class SimpleActivity extends AppCompatActivity {
                 .subscribe(new Observer<Integer>() {
                     @Override
                     public void onSubscribe(@NonNull Disposable d) {
-
+                        disposable=d;
                     }
 
                     @Override
@@ -56,7 +59,7 @@ public class SimpleActivity extends AppCompatActivity {
                 });
 
         //demo2
-        //讲解部分操作符的原理
+        //map操作符的源码
         Observable.create(new ObservableOnSubscribe<Integer>() {
             @Override
             public void subscribe(@NonNull ObservableEmitter<Integer> emitter) {
@@ -96,8 +99,12 @@ public class SimpleActivity extends AppCompatActivity {
 
         //demo3
         //线程调度的原理
+    }
 
-        //RxJava Hook demo
-
+    @Override
+    protected void onDestroy() {
+        if(disposable!=null)
+            disposable.dispose();
+        super.onDestroy();
     }
 }
