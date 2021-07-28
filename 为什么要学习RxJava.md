@@ -488,3 +488,65 @@ public void rxJavaDownloadImageAction() {
 
 前面的东西都不太好理解，最后讲个好玩的
 
+还记得之前讲的RxJavaPlugins.onAssembly这个钩子方法吗？
+
+上面我们只是简单说了下这个东西，我们来仔细看看这个东西能用了干嘛
+
+```java
+public static <T> Observable<T> onAssembly(@NonNull Observable<T> source) {
+    Function<? super Observable, ? extends Observable> f = onObservableAssembly;
+    if (f != null) {
+        return apply(f, source);
+    }
+    return source;
+}
+```
+
+之前我们说我们没有设置Function<? super Observable, ? extends Observable> f的话f为null所以这个方法就会什么也没干，传入什么就返回了什么，现在我们来看看怎么设置
+
+一番探寻后可知是
+
+RxJavaPlugins.setOnObservableAssembly
+
+这个方法
+
+```java
+public static void setOnObservableAssembly(@Nullable Function<? super Observable, ? extends Observable> onObservableAssembly) {
+    if (lockdown) {
+        throw new IllegalStateException("Plugins can't be changed anymore");
+    }
+    RxJavaPlugins.onObservableAssembly = onObservableAssembly;
+}
+```
+
+假如f不会null的话就会走return apply(f, source);而不是return source; 来看看apply(f, source)
+
+```java
+static <T, R> R apply(@NonNull Function<T, R> f, @NonNull T t) {
+    try {
+        return f.apply(t);
+    } catch (Throwable ex) {
+        throw ExceptionHelper.wrapOrThrow(ex);
+    }
+}
+```
+
+依据这个可以编写以下代码全局监听RxJava
+
+```
+RxJavaPlugins.setOnObservableAssembly(new Function<Observable, Observable>() {
+    @Override
+    public Observable apply(Observable observable) {
+        Log.d(TAG, "apply: 整个项目 全局 监听 到底有多少地方使用 RxJava:" + observable);
+        return observable; // 不破坏人家的功能
+    }
+});
+```
+
+
+
+关于RxJava我要讲的就是这些了，由于水平限制可能我讲的并不是很清楚，不是很懂的同学可以后面再看看讲义或者跟着demo自己去跟一遍源码。
+
+github仓库地址
+
+[OkAndGreat/RxJavaTeachDemo (github.com)](https://github.com/OkAndGreat/RxJavaTeachDemo)

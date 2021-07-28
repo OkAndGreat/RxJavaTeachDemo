@@ -23,6 +23,14 @@ public class RxHookActivity extends AppCompatActivity {
         setContentView(R.layout.activity_rx_hook);
 
         //RxJava Hook demo
+        RxJavaPlugins.setOnObservableAssembly(new Function<Observable, Observable>() {
+            @Override
+            public Observable apply(Observable observable) {
+                Log.d(TAG, "apply: 整个项目 全局 监听 到底有多少地方使用 RxJava:" + observable);
+                return observable; // 不破坏人家的功能
+            }
+        });
+
         Observable.create(new ObservableOnSubscribe<Object>() {
             @Override
             public void subscribe(ObservableEmitter<Object> e) {
@@ -39,16 +47,9 @@ public class RxHookActivity extends AppCompatActivity {
                 .subscribe(new Consumer<Boolean>() {
                     @Override
                     public void accept(Boolean aBoolean) {
-
+                        Log.d(TAG, "accept: ");
                     }
                 });
 
-        RxJavaPlugins.setOnObservableAssembly(new Function<Observable, Observable>() {
-            @Override
-            public Observable apply(Observable observable) throws Exception {
-                Log.d(TAG, "apply: 整个项目 全局 监听 到底有多少地方使用 RxJava:" + observable);
-                return null; // 不破坏人家的功能
-            }
-        });
     }
 }
