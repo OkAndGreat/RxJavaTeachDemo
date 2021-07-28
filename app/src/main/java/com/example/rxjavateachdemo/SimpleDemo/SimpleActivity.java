@@ -106,8 +106,7 @@ public class SimpleActivity extends AppCompatActivity {
             }
         })
                 .subscribeOn(Schedulers.io())
-                .subscribe(
-                        new Observer<String>() {
+                .subscribe(new Observer<String>() {
                             @Override
                             public void onSubscribe(Disposable d) {
 
