@@ -84,7 +84,6 @@ public class RetrofitActivity extends AppCompatActivity {
     }
 
 
-    //防止内存泄漏
     @Override
     protected void onDestroy() {
         if (disposable != null)

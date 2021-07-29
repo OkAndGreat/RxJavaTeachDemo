@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.rxjavateachdemo.R;
 
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.core.ObservableEmitter;
 import io.reactivex.rxjava3.core.ObservableOnSubscribe;
@@ -17,7 +18,6 @@ import io.reactivex.rxjava3.schedulers.Schedulers;
 public class SimpleActivity extends AppCompatActivity {
     private static final String TAG = "SimpleActivity";
 
-    Disposable disposable;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,7 +37,6 @@ public class SimpleActivity extends AppCompatActivity {
 //                .subscribe(new Observer<Integer>() {
 //                    @Override
 //                    public void onSubscribe(@NonNull Disposable d) {
-//                        disposable=d;
 //                    }
 //
 //                    @Override
@@ -97,46 +96,81 @@ public class SimpleActivity extends AppCompatActivity {
 
         //demo3
         //线程调度的原理
+//        Observable.create(new ObservableOnSubscribe<String>() {
+//            @Override
+//            public void subscribe(ObservableEmitter<String> e) {
+//                e.onNext("Hello World");
+//
+//                Log.d(TAG, "subscribe" + Thread.currentThread().getName());
+//            }
+//        })
+//                .subscribeOn(Schedulers.io())
+//                .subscribe(new Observer<String>() {
+//                    @Override
+//                    public void onSubscribe(Disposable d) {
+//
+//                        Disposable disposable = d;
+//                        Log.d(TAG, "onSubscribe: " + Thread.currentThread().getName());
+//                    }
+//
+//                    @Override
+//                    public void onNext(String s) {
+//                        Log.d(TAG, "onNext: " + Thread.currentThread().getName());
+//                    }
+//
+//                    @Override
+//                    public void onError(Throwable e) {
+//                    }
+//
+//                    @Override
+//                    public void onComplete() {
+//                    }
+//                });
+
+
+        new Thread() {
+            @Override
+            public void run() {
+                super.run();
+
+                ThreadDemo();
+            }
+        }.start();
+
+
+    }
+
+    void ThreadDemo() {
         Observable.create(new ObservableOnSubscribe<String>() {
             @Override
             public void subscribe(ObservableEmitter<String> e) {
-                e.onNext("Hello World");
+                e.onNext("qwerty");
 
-                Log.d(TAG, "subscribe" + Thread.currentThread().getName());
+                Log.d(TAG, "subscribe " + Thread.currentThread().getName());
             }
         })
-                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<String>() {
-                            @Override
-                            public void onSubscribe(Disposable d) {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+                        Log.d(TAG, "onSubscribe: " + Thread.currentThread().getName());
+                    }
 
-                                Disposable disposable = d;
-                                Log.d(TAG, "onSubscribe: " + Thread.currentThread().getName());
-                            }
+                    @Override
+                    public void onNext(String s) {
+                        Log.d(TAG, "onNext: " + Thread.currentThread().getName());
+                    }
 
-                            @Override
-                            public void onNext(String s) {
-                                Log.d(TAG, "onNext: " + Thread.currentThread().getName());
-                            }
+                    @Override
+                    public void onError(Throwable e) {
 
-                            @Override
-                            public void onError(Throwable e) {
-                            }
+                    }
 
-                            @Override
-                            public void onComplete() {
-                            }
-                        });
+                    @Override
+                    public void onComplete() {
 
-
+                    }
+                });
     }
 
-    //防止内存泄漏
-    @Override
-    protected void onDestroy() {
-        if (disposable != null)
-            if (!disposable.isDisposed())
-                disposable.dispose();
-        super.onDestroy();
-    }
 }

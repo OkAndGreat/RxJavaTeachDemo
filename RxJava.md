@@ -412,6 +412,210 @@ downstream.onNext(v);
 
 ### 3.线程调度的原理
 
+如果理解了上面讲的操作符的原理，那么理解RxJava是怎么进行线程调度就比较简单了，先看
+
+subscribeOn操作符的原理
+
+```java
+Observable.create(new ObservableOnSubscribe<String>() {
+    @Override
+    public void subscribe(ObservableEmitter<String> e) {
+        e.onNext("Hello World");
+
+        Log.d(TAG, "subscribe" + Thread.currentThread().getName());
+    }
+})
+        .subscribeOn(Schedulers.io())
+        .subscribe(new Observer<String>() {
+            @Override
+            public void onSubscribe(Disposable d) {
+
+                Disposable disposable = d;
+                Log.d(TAG, "onSubscribe: " + Thread.currentThread().getName());
+            }
+
+            @Override
+            public void onNext(String s) {
+                Log.d(TAG, "onNext: " + Thread.currentThread().getName());
+            }
+
+            @Override
+            public void onError(Throwable e) {
+            }
+
+            @Override
+            public void onComplete() {
+            }
+        });
+```
+
+Schedulers.io()封装了线程池，看到subscribeOn
+
+```java
+public final Observable<T> subscribeOn(@NonNull Scheduler scheduler) {
+    Objects.requireNonNull(scheduler, "scheduler is null");
+    return RxJavaPlugins.onAssembly(new ObservableSubscribeOn<>(this, scheduler));
+}
+```
+
+是不是和分析map操作符很类似？
+
+接着看ObservableSubscribeOn
+
+```java
+public ObservableSubscribeOn(ObservableSource<T> source, Scheduler scheduler) {
+    super(source);
+    this.scheduler = scheduler;
+}
+```
+
+可以看到将那个包装了线程池的对象进行了储存
+
+接下来看ObservableSubscribeOn的subscribeActual
+
+```java
+@Override
+public void subscribeActual(final Observer<? super T> observer) {
+    final SubscribeOnObserver<T> parent = new SubscribeOnObserver<>(observer);
+
+    observer.onSubscribe(parent);
+
+    parent.setDisposable(scheduler.scheduleDirect(new SubscribeTask(parent)));
+}
+```
+
+看到new SubscribeTask(parent)
+
+```java
+final class SubscribeTask implements Runnable {
+    private final SubscribeOnObserver<T> parent;
+
+    SubscribeTask(SubscribeOnObserver<T> parent) {
+        this.parent = parent;
+    }
+
+    @Override
+    public void run() {
+        source.subscribe(parent);
+    }
+}
+```
+
+将观察者包装进了一个Runnable对象里
+
+scheduler.scheduleDirect(new SubscribeTask(parent))将这个任务放进了线程池中执行。
+
+看看scheduler.scheduleDirect
+
+```java
+@NonNull
+public Disposable scheduleDirect(@NonNull Runnable run) {
+    return scheduleDirect(run, 0L, TimeUnit.NANOSECONDS);
+}
+
+@NonNull
+    public Disposable scheduleDirect(@NonNull Runnable run, long delay, @NonNull TimeUnit unit) {
+        final Worker w = createWorker();
+
+        final Runnable decoratedRun = RxJavaPlugins.onSchedule(run);
+
+        DisposeTask task = new DisposeTask(decoratedRun, w);
+
+        w.schedule(task, delay, unit);
+
+        return task;
+    }
+
+@NonNull
+        @Override
+        public Disposable schedule(@NonNull Runnable action, long delayTime, @NonNull TimeUnit unit) {
+            if (tasks.isDisposed()) {
+                // don't schedule, we are unsubscribed
+                return EmptyDisposable.INSTANCE;
+            }
+
+            return threadWorker.scheduleActual(action, delayTime, unit, tasks);
+        }
+
+@NonNull
+    public ScheduledRunnable scheduleActual(final Runnable run, long delayTime, @NonNull TimeUnit unit, @Nullable DisposableContainer parent) {
+        Runnable decoratedRun = RxJavaPlugins.onSchedule(run);
+
+        ScheduledRunnable sr = new ScheduledRunnable(decoratedRun, parent);
+
+        if (parent != null) {
+            if (!parent.add(sr)) {
+                return sr;
+            }
+        }
+
+        Future<?> f;
+        try {
+            if (delayTime <= 0) {
+                f = executor.submit((Callable<Object>)sr);
+            } else {
+                f = executor.schedule((Callable<Object>)sr, delayTime, unit);
+            }
+            sr.setFuture(f);
+        } catch (RejectedExecutionException ex) {
+            if (parent != null) {
+                parent.remove(sr);
+            }
+            RxJavaPlugins.onError(ex);
+        }
+
+        return sr;
+    }
+```
+
+接着看ObserverOn的源码
+
+方便讲解将RxJava运行在了子线程中
+
+```java
+new Thread() {
+    @Override
+    public void run() {
+        super.run();
+
+        ThreadDemo();
+    }
+}.start();
+
+    void ThreadDemo() {
+        Observable.create(new ObservableOnSubscribe<String>() {
+            @Override
+            public void subscribe(ObservableEmitter<String> e) {
+                e.onNext("qwerty");
+
+                Log.d(TAG, "subscribe " + Thread.currentThread().getName());
+            }
+        })
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<String>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+                        Log.d(TAG, "onSubscribe: " + Thread.currentThread().getName());
+                    }
+
+                    @Override
+                    public void onNext(String s) {
+                        Log.d(TAG, "onNext: " + Thread.currentThread().getName());
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+
+                    }
+
+                    @Override
+                    public void onComplete() {
+
+                    }
+                });
+    }
+```
+
 
 
 ## RxJava核心思想
