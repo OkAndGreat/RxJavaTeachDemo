@@ -11,17 +11,17 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.RxJavaTeachDemo">
-        <activity android:name=".RetrofitDemo.RetrofitActivity">
+        <activity android:name=".CustomRxJavaOperator.CustomOperatorActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".RxHook.RxHookActivity"></activity>
-        <activity android:name=".ObserverModel.ObserverActivity"></activity>
-        <activity android:name=".SimpleDemo.SimpleActivity">
-        </activity>
+        <activity android:name=".RetrofitDemo.RetrofitActivity"/>
+        <activity android:name=".RxHook.RxHookActivity" />
+        <activity android:name=".ObserverModel.ObserverActivity" />
+        <activity android:name=".SimpleDemo.SimpleActivity" />
         <activity android:name=".DownloadDemo.DownloadActivity" />
     </application>
 

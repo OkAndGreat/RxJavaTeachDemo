@@ -4,6 +4,8 @@
 
 ## 观察者设计模式
 
+![](https://github.com/OkAndGreat/RxJavaTeachDemo/blob/master/assets/%E8%A7%82%E5%AF%9F%E8%80%85%E6%A8%A1%E5%BC%8F.png?raw=true)
+
 ### 观察者模式的定义
 
 在对象之间定义了一对多的依赖，当一个对象改变状态，依赖它的对象会收到通知并自动更新。
@@ -570,7 +572,7 @@ public Disposable scheduleDirect(@NonNull Runnable run) {
 
 接着看ObserverOn的源码
 
-方便讲解将RxJava运行在了子线程中
+为了方便讲解将RxJava运行在了子线程中
 
 ```java
 new Thread() {
@@ -616,7 +618,41 @@ new Thread() {
     }
 ```
 
+AndroidSchedulers.mainThread()和Schedulers.io()类似，Schedulers.io()里面封装了线程池以让任务可以执行在子线程中，而AndroidSchedulers.mainThread()封装了handler以便任务可以执行在主线程中
 
+分析observeOn
+
+```java
+public final Observable<T> observeOn(@NonNull Scheduler scheduler) {
+    return observeOn(scheduler, false, bufferSize());
+}
+
+public final Observable<T> observeOn(@NonNull Scheduler scheduler, boolean delayError, int bufferSize) {
+        Objects.requireNonNull(scheduler, "scheduler is null");
+        ObjectHelper.verifyPositive(bufferSize, "bufferSize");
+        return RxJavaPlugins.onAssembly(new ObservableObserveOn<>(this, scheduler, delayError, bufferSize));
+    }
+
+public ObservableObserveOn(ObservableSource<T> source, Scheduler scheduler, boolean delayError, int bufferSize) {
+        super(source);
+        this.scheduler = scheduler;
+        this.delayError = delayError;
+        this.bufferSize = bufferSize;
+    }
+```
+
+可知将scheduler进行了存储
+
+有了map操作符和SubscribeOn操作符的基础，分析ObserverOn原理其实是一样的。
+
+
+
+对observeOn()与subscribeOn()的使用做一个总结：
+
+1.只有第一个subscribeOn() 起作用（所以多个 subscribeOn() 无意义）；
+2.这个 subscribeOn() 控制从流程开始的第一个操作，直到遇到第一个 observeOn()；
+3.observeOn() 可以使用多次，每个 observeOn() 将导致一次线程切换()，这次切换开始于这次 observeOn() 的下一个操作；
+4.不论是 subscribeOn() 还是 observeOn()，每次线程切换如果不受到下一个 observeOn() 的干预，线程将不再改变，不会自动切换到其他线程。
 
 ## RxJava核心思想
 
@@ -687,6 +723,10 @@ public void rxJavaDownloadImageAction() {
                 });
     }
 ```
+
+## 自定义RxJava操作符
+
+仿照其它操作符并借助throttleFirst操作符完成View的防抖操作符
 
 ## RxHook
 
