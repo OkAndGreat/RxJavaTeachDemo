@@ -4,11 +4,11 @@
 
 ## 观察者设计模式
 
-![](https://github.com/OkAndGreat/RxJavaTeachDemo/blob/master/assets/%E8%A7%82%E5%AF%9F%E8%80%85%E6%A8%A1%E5%BC%8F.png?raw=true)
-
 ### 观察者模式的定义
 
 在对象之间定义了一对多的依赖，当一个对象改变状态，依赖它的对象会收到通知并自动更新。
+
+![](https://img-blog.csdnimg.cn/6987d1e2d7ba4bc397bbc11e3cc37e7f.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L20wXzUwMjYyMjE0,size_16,color_FFFFFF,t_70#pic_center)
 
 ### 使用场景例子
 
@@ -172,9 +172,15 @@ public void onNext(T t) {
 }
 ```
 
-![pic1](C:\Users\wzt\Desktop\pic1.png)
-
 分析完上述源码后发现RxJava用的并不是纯粹的的观察者模式，而是扩展过的。
+
+Observable创建过程时序图：
+
+![](https://github.com/OkAndGreat/RxJavaTeachDemo/blob/master/assets/Observable%E5%88%9B%E5%BB%BA%E8%BF%87%E7%A8%8B%E6%97%B6%E5%BA%8F%E5%9B%BE.png?raw=true)
+
+Observable 与 Observer 订阅的过程时序图：
+
+![](https://github.com/OkAndGreat/RxJavaTeachDemo/blob/master/assets/Observable%20%E4%B8%8E%20Observer%20%E8%AE%A2%E9%98%85%E7%9A%84%E8%BF%87%E7%A8%8B%E6%97%B6%E5%BA%8F%E5%9B%BE.png?raw=true)
 
 ### 2.操作符的原理
 
@@ -315,7 +321,9 @@ protected void subscribeActual(Observer<? super T> observer) {
 }
 ```
 
-![pic2](C:\Users\wzt\Desktop\pic2.png)
+![pic2](https://github.com/OkAndGreat/RxJavaTeachDemo/blob/master/assets/pic2.png?raw=true)
+
+![](https://github.com/OkAndGreat/RxJavaTeachDemo/blob/master/assets/map%E6%93%8D%E4%BD%9C%E7%AC%A6.png?raw=true)
 
 其实之前就说过，ObservableCreate才是真正发送消息的那个类，在我们上面的demo中，直接由ObservableCreate发送消息给观察者，而在这里ObservableCreate先将消息传给ObservableMap，然后ObservableMap收到消息后可以把消息更改后再继续传给下游。
 
@@ -412,9 +420,11 @@ MapObserver，MapObserver储存了原来本来应该传给ObservableCreate subsc
 
 downstream.onNext(v);
 
+
+
 ### 3.线程调度的原理
 
-如果理解了上面讲的操作符的原理，那么理解RxJava是怎么进行线程调度就比较简单了，先看
+如果理解了上面讲的操作符的原理，那么理解RxJava是怎么进行线程调度就比较简单了，来看
 
 subscribeOn操作符的原理
 
@@ -647,6 +657,10 @@ public ObservableObserveOn(ObservableSource<T> source, Scheduler scheduler, bool
 
 
 
+ subscribeOn()切换线程时序图：
+
+![](https://github.com/OkAndGreat/RxJavaTeachDemo/blob/master/assets/subscribeOn()%E5%88%87%E6%8D%A2%E7%BA%BF%E7%A8%8B%E6%97%B6%E5%BA%8F%E5%9B%BE.png?raw=true)
+
 对observeOn()与subscribeOn()的使用做一个总结：
 
 1.只有第一个subscribeOn() 起作用（所以多个 subscribeOn() 无意义）；
@@ -656,17 +670,16 @@ public ObservableObserveOn(ObservableSource<T> source, Scheduler scheduler, bool
 
 ## RxJava核心思想
 
-用RxJava写出来的代码像一条有始有终的河流，我们在起点放入事件，然后事件从起点流向终点的过程中我们不断对事件进行拦截并更改，最终到终点时是我们想要的事件。
+用RxJava写出来的代码像一条有始有终的河流，我们在起点放入事件，然后事件从起点流向终点的过程中我们可以不断对事件进行拦截并更改，最终到终点时是我们想要的事件。
+
+
 
 什么意思？
 
 比如说我们要下载一张图片并展示，起点事件就是图片String类型的URL，然后我们可以拦截这个事件，然后将URL转变为Bitmap再将事件流向下游，这样事件就发生了更改，我们也可以再次拦截事件然后打一个log然后再次将事件传向下游，这样到终点时事件就是bitmap信息而不是String了，我们此时可以拿得到的bitmap信息做想做的事情，比如赋值给ImageView
 
 ```java
-// 网络图片的链接地址
-private final static String PATH = "https://s1.ax1x.com/2020/10/11/0gGYbF.jpg";
-
-public void rxJavaDownloadImageAction() {
+public void rxJavaDownloadImageAction(View view) {
 
         // 起点
         Observable.just(PATH)
@@ -676,7 +689,7 @@ public void rxJavaDownloadImageAction() {
                         URL url = new URL(PATH);
                         HttpURLConnection httpURLConnection = (HttpURLConnection) url.openConnection();
                         httpURLConnection.setConnectTimeout(5000);
-                        int responseCode = httpURLConnection.getResponseCode(); 
+                        int responseCode = httpURLConnection.getResponseCode(); // 才开始 request
                         if (responseCode == HttpURLConnection.HTTP_OK) {
                             InputStream inputStream = httpURLConnection.getInputStream();
                             Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
@@ -685,18 +698,25 @@ public void rxJavaDownloadImageAction() {
                         return null;
                     }
                 })
+                // 日志记录
                 .map(new Function<Bitmap, Bitmap>() {
                     @Override
-                    public Bitmap apply(Bitmap bitmap) throws Exception {
+                    public Bitmap apply(Bitmap bitmap) {
                         Log.d(TAG, "apply: 是这个时候下载了图片啊:" + System.currentTimeMillis());
                         return bitmap;
                     }
                 })
-                //线程切换
-                //表示在io线程中下载图片并在主线程中展示图片
+                .map(new Function<Bitmap, Bitmap>() {
+                    @Override
+                    public Bitmap apply(Bitmap bitmap) {
+                        Paint paint = new Paint();
+                        paint.setTextSize(88);
+                        paint.setColor(Color.RED);
+                        return drawTextToBitmap(bitmap, "同学们大家好", paint, 88, 88);
+                    }
+                })
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                //终点
                 .subscribe(new Observer<Bitmap>() {
                     @Override
                     public void onSubscribe(Disposable d) {
@@ -727,6 +747,71 @@ public void rxJavaDownloadImageAction() {
 ## 自定义RxJava操作符
 
 仿照其它操作符并借助throttleFirst操作符完成View的防抖操作符
+
+```java
+public static <T> Observable<T> create(@NonNull ObservableOnSubscribe<T> source) {
+    Objects.requireNonNull(source, "source is null");
+    return RxJavaPlugins.onAssembly(new ObservableCreate<>(source));
+}
+
+-->
+    public class RxView {
+
+    public static Observable<Object> clicks(View view) {
+        Objects.requireNonNull(view, "source is null");
+        return RxJavaPlugins.onAssembly(new RxViewObservable(view));
+    }
+}
+
+
+
+
+
+public final class ObservableCreate<T> extends Observable<T> {
+    final ObservableOnSubscribe<T> source;
+
+    public ObservableCreate(ObservableOnSubscribe<T> source) {
+        this.source = source;
+    }
+
+    @Override
+    protected void subscribeActual(Observer<? super T> observer) {
+        CreateEmitter<T> parent = new CreateEmitter<>(observer);
+        observer.onSubscribe(parent);
+
+        try {
+            source.subscribe(parent);
+        } catch (Throwable ex) {
+            Exceptions.throwIfFatal(ex);
+            parent.onError(ex);
+        }
+    }
+    
+    ...
+}
+
+-->
+
+public class RxViewObservable extends Observable<Object> {
+    View view;
+    // 用来给onNext传参的,实际无用
+    private static final Object EVENT = new Object();
+
+    public RxViewObservable(View view) {
+        this.view = view;
+    }
+
+    @Override
+    protected void subscribeActual(@NonNull Observer<? super Object> observer) {
+        view.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                observer.onNext(EVENT);
+            }
+        });
+    }
+}
+```
 
 ## RxHook
 

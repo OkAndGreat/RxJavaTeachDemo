@@ -4,6 +4,7 @@ import android.app.ProgressDialog;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.os.Bundle;
 import android.os.Handler;
@@ -93,7 +94,6 @@ public class DownloadActivity extends AppCompatActivity {
     });
 
     public void rxJavaDownloadImageAction(View view) {
-
         // 起点
         Observable.just(PATH)
                 .map(new Function<String, Bitmap>() {
@@ -114,16 +114,22 @@ public class DownloadActivity extends AppCompatActivity {
                 // 日志记录
                 .map(new Function<Bitmap, Bitmap>() {
                     @Override
-                    public Bitmap apply(Bitmap bitmap) throws Exception {
+                    public Bitmap apply(Bitmap bitmap) {
                         Log.d(TAG, "apply: 是这个时候下载了图片啊:" + System.currentTimeMillis());
                         return bitmap;
                     }
                 })
+                .map(new Function<Bitmap, Bitmap>() {
+                    @Override
+                    public Bitmap apply(Bitmap bitmap) {
+                        Paint paint = new Paint();
+                        paint.setTextSize(88);
+                        paint.setColor(Color.RED);
+                        return drawTextToBitmap(bitmap, "同学们大家好", paint, 88, 88);
+                    }
+                })
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                // 订阅
-                // 将起点 和 终点 连接
-                //是导火索般的存在
                 .subscribe(new Observer<Bitmap>() {
                     @Override
                     public void onSubscribe(Disposable d) {
@@ -165,16 +171,4 @@ public class DownloadActivity extends AppCompatActivity {
         canvas.drawText(text, paddingLeft, paddingTop, paint);
         return bitmap;
     }
-
-    //给图片加水印
-    //                .map(new Function<Bitmap, Bitmap>() {
-//                    @Override
-//                    public Bitmap apply(Bitmap bitmap) throws Exception {
-//                        Paint paint = new Paint();
-//                        paint.setTextSize(88);
-//                        paint.setColor(Color.RED);
-//                        return drawTextToBitmap(bitmap, "同学们大家好",paint, 88 , 88);
-//                    }
-//                })
-
 }
