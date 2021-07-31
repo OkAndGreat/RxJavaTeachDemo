@@ -7,6 +7,6 @@ import retrofit2.http.GET;
 public interface Api {
 
     @GET("/article/top/json")
-    Observable<bean> getData();
+    Call<bean> getData();
 
 }

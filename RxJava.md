@@ -2,6 +2,92 @@
 
 [干货集中营 (gank.io)](https://gank.io/post/560e15be2dca930e00da1083)
 
+## RxJava与Retrofit结合
+
+常规写法：
+
+```java
+public interface Api {
+
+    @GET("/article/top/json")
+    Call<bean> getData();
+
+}
+```
+
+```java
+retrofit = new Retrofit.Builder()
+        .baseUrl(BASEURL)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build();
+
+retrofit.create(Api.class).getData().enqueue(new Callback<bean>() {
+    @Override
+    public void onResponse(Call<bean> call, Response<bean> response) {
+        Log.d(TAG, "onResponse: -->" + response.body().getData().get(0).toString());
+    }
+
+    @Override
+    public void onFailure(Call<bean> call, Throwable t) {
+
+    }
+});
+```
+
+与RxJava结合:注意四点
+
+```java
+1.改变返回类型为Observable
+public interface Api {
+
+    @GET("/article/top/json")
+    Observable<bean> getData();
+
+}
+2. addCallAdapterFactory(RxJava3CallAdapterFactory.create())
+        retrofit = new Retrofit.Builder()
+                .baseUrl(BASEURL)
+                .addConverterFactory(GsonConverterFactory.create())
+                .addCallAdapterFactory(RxJava3CallAdapterFactory.create())
+                .build();
+
+3.
+        retrofit.create(Api.class)
+                .getData()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<bean>() {
+                    @Override
+                    public void onSubscribe(@NonNull Disposable d) {
+                        disposable = d;
+                    }
+
+                    @Override
+                    public void onNext(@NonNull bean bean) {
+                        Log.d(TAG, "onNext: -->" + bean.getData().get(0).toString());
+                    }
+
+                    @Override
+                    public void onError(@NonNull Throwable e) {
+
+                    }
+
+                    @Override
+                    public void onComplete() {
+
+                    }
+                });
+
+4.如果activity销毁时要让RxJava停止工作
+        @Override
+    protected void onDestroy() {
+        if (disposable != null)
+            if (!disposable.isDisposed())
+                disposable.dispose();
+        super.onDestroy();
+    }
+```
+
 ## 观察者设计模式
 
 ### 观察者模式的定义

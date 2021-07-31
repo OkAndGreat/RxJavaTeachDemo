@@ -13,13 +13,14 @@ import io.reactivex.rxjava3.annotations.NonNull;
 import io.reactivex.rxjava3.core.Observer;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class RetrofitActivity extends AppCompatActivity {
     private static final String TAG = "RetrofitActivity";
-
-    Disposable disposable;
 
     Retrofit retrofit;
 
@@ -31,63 +32,69 @@ public class RetrofitActivity extends AppCompatActivity {
         setContentView(R.layout.activity_retrofit);
 
         //常规用法
-//        retrofit = new Retrofit.Builder()
-//                .baseUrl(BASEURL)
-//                .addConverterFactory(GsonConverterFactory.create())
-//                .build();
-//
-//        retrofit.create(Api.class).getData().enqueue(new Callback<bean>() {
-//            @Override
-//            public void onResponse(Call<bean> call, Response<bean> response) {
-//                Log.d(TAG, "onResponse: -->" + response.body().getData().get(0).toString());
-//            }
-//
-//            @Override
-//            public void onFailure(Call<bean> call, Throwable t) {
-//
-//            }
-//        });
-
-        //与RxJava结合
         retrofit = new Retrofit.Builder()
                 .baseUrl(BASEURL)
                 .addConverterFactory(GsonConverterFactory.create())
-                .addCallAdapterFactory(RxJava3CallAdapterFactory.create())
                 .build();
 
-        retrofit.create(Api.class)
-                .getData()
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Observer<bean>() {
-                    @Override
-                    public void onSubscribe(@NonNull Disposable d) {
-                        disposable = d;
-                    }
+        retrofit.create(Api.class).getData().enqueue(new Callback<bean>() {
+            @Override
+            public void onResponse(Call<bean> call, Response<bean> response) {
+                Log.d(TAG, "onResponse: -->" + response.body().getData().get(0).toString());
+            }
 
-                    @Override
-                    public void onNext(@NonNull bean bean) {
-                        Log.d(TAG, "onNext: -->" + bean.getData().get(0).toString());
-                    }
+            @Override
+            public void onFailure(Call<bean> call, Throwable t) {
 
-                    @Override
-                    public void onError(@NonNull Throwable e) {
-
-                    }
-
-                    @Override
-                    public void onComplete() {
-
-                    }
-                });
-    }
+            }
+        });
 
 
-    @Override
-    protected void onDestroy() {
-        if (disposable != null)
-            if (!disposable.isDisposed())
-                disposable.dispose();
-        super.onDestroy();
     }
 }
+
+
+
+
+
+
+//与RxJava结合
+//        retrofit = new Retrofit.Builder()
+//                .baseUrl(BASEURL)
+//                .addConverterFactory(GsonConverterFactory.create())
+//                .addCallAdapterFactory(RxJava3CallAdapterFactory.create())
+//                .build();
+//
+//        retrofit.create(Api.class)
+//                .getData()
+//                .subscribeOn(Schedulers.io())
+//                .observeOn(AndroidSchedulers.mainThread())
+//                .subscribe(new Observer<bean>() {
+//                    @Override
+//                    public void onSubscribe(@NonNull Disposable d) {
+//                        disposable = d;
+//                    }
+//
+//                    @Override
+//                    public void onNext(@NonNull bean bean) {
+//                        Log.d(TAG, "onNext: -->" + bean.getData().get(0).toString());
+//                    }
+//
+//                    @Override
+//                    public void onError(@NonNull Throwable e) {
+//
+//                    }
+//
+//                    @Override
+//                    public void onComplete() {
+//
+//                    }
+//                });
+
+//    @Override
+//    protected void onDestroy() {
+//        if (disposable != null)
+//            if (!disposable.isDisposed())
+//                disposable.dispose();
+//        super.onDestroy();
+//    }
