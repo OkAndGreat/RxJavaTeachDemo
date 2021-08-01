@@ -53,7 +53,6 @@ public class RxViewObservableX extends Observable<Object> {
         public void dispose() {
             // 如果没有中断过,才能取消view.setOnClickListener(null);
             if (isDisposable.compareAndSet(false, true)) {
-                // 主线程 很好的中断
                 if (Looper.myLooper() == Looper.getMainLooper()) {
                     view.setOnClickListener(null);
 
