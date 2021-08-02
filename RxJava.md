@@ -1,6 +1,646 @@
-## 基础知识
+课上所有会用到的demo：
 
-[干货集中营 (gank.io)](https://gank.io/post/560e15be2dca930e00da1083)
+[OkAndGreat/RxJavaTeachDemo (github.com)](https://github.com/OkAndGreat/RxJavaTeachDemo)
+
+## 基础知识(课上不讲，大家自己看)
+
+## Rx介绍
+
+#### ReactiveX的历史
+
+ReactiveX是Reactive Extensions的缩写，一般简写为Rx，最初是LINQ的一个扩展，由微软的架构师Erik Meijer领导的团队开发，在2012年11月开源，Rx是一个编程模型，目标是提供一致的编程接口，帮助开发者更方便的处理异步数据流，Rx库支持.NET、JavaScript和C++，Rx近几年越来越流行了，现在已经支持几乎全部的流行编程语言了，Rx的大部分语言库由ReactiveX这个组织负责维护，比较流行的有RxJava/RxJS/Rx.NET，社区网站是 [reactivex.io](http://reactivex.io/)。
+
+#### 什么是ReactiveX
+
+微软给的定义是，Rx是一个函数库，让开发者可以利用可观察序列和LINQ风格查询操作符来编写异步和基于事件的程序，使用Rx，开发者可以用Observables表示异步数据流，用LINQ操作符查询异步数据流， 用Schedulers参数化异步数据流的并发处理，Rx可以这样定义：Rx = Observables + LINQ + Schedulers。
+
+ReactiveX.io给的定义是，Rx是一个使用可观察数据流进行异步编程的编程接口，ReactiveX结合了观察者模式、迭代器模式和函数式编程的精华。
+
+#### ReactiveX的应用
+
+很多公司都在使用ReactiveX，例如Microsoft、Netflix、Github、Trello、SoundCloud。
+
+#### ReactiveX宣言
+
+ReactiveX不仅仅是一个编程接口，它是一种编程思想的突破，它影响了许多其它的程序库和框架以及编程语言。
+
+
+
+## 部分Rx操作符
+
+看一遍有印象即可，把RxJava的操作符当作Api看待，要用的时候查阅相关资料即可
+
+主要记住RxJava有哪几类操作符
+
+总表：
+
+![RxJava操作符.png](https://github.com/OkAndGreat/RxJavaTeachDemo/blob/master/assets/RxJava%E6%93%8D%E4%BD%9C%E7%AC%A6.png?raw=true)
+
+#### From
+
+将其它种类的对象和数据类型转换为Observable
+
+![from](https://mcxiaoke.gitbooks.io/rxdocs/content/images/operators/from.c.png)
+
+![from](https://mcxiaoke.gitbooks.io/rxdocs/content/images/operators/from.png)
+
+示例代码
+
+```java
+Integer[] items = { 0, 1, 2, 3, 4, 5 };
+Observable myObservable = Observable.from(items);
+
+myObservable.subscribe(
+    new Action1<Integer>() {
+        @Override
+        public void call(Integer item) {
+            System.out.println(item);
+        }
+    },
+    new Action1<Throwable>() {
+        @Override
+        public void call(Throwable error) {
+            System.out.println("Error encountered: " + error.getMessage());
+        }
+    },
+    new Action0() {
+        @Override
+        public void call() {
+            System.out.println("Sequence complete");
+        }
+    }
+);
+```
+
+输出
+
+```
+0
+1
+2
+3
+4
+5
+Sequence complete
+```
+
+#### Just
+
+创建一个发射指定值的Observable
+
+![just](https://mcxiaoke.gitbooks.io/rxdocs/content/images/operators/just.png)
+
+Just将单个数据转换为发射那个数据的Observable。
+
+Just类似于From，但是From会将数组或Iterable的数据取出然后逐个发射，而Just只是简单的原样发射，将数组或Iterable当做单个数据。
+
+注意：如果你传递`null`给Just，它会返回一个发射`null`值的Observable。不要误认为它会返回一个空Observable（完全不发射任何数据的Observable），如果需要空Observable你应该使用[Empty](https://mcxiaoke.gitbooks.io/rxdocs/content/operators/Just.html#Empty)操作符。
+
+RxJava将这个操作符实现为`just`函数，它接受一至九个参数，返回一个按参数列表顺序发射这些数据的Observable。
+
+示例代码：
+
+```java
+Observable.just(1, 2, 3)
+          .subscribe(new Subscriber<Integer>() {
+        @Override
+        public void onNext(Integer item) {
+            System.out.println("Next: " + item);
+        }
+
+        @Override
+        public void onError(Throwable error) {
+            System.err.println("Error: " + error.getMessage());
+        }
+
+        @Override
+        public void onCompleted() {
+            System.out.println("Sequence complete.");
+        }
+    });
+```
+
+输出
+
+```
+Next: 1
+Next: 2
+Next: 3
+Sequence complete.
+```
+
+#### Defer
+
+顾名思义，延迟创建
+
+示例代码：
+
+```java
+private String[] strings1 = {"Hello", "World"};
+    private String[] strings2 = {"Hello", "RxJava"};
+
+    private void test() {
+        Observable<String> observable = Observable.defer(new Func0<Observable<String>>() {
+            @Override
+            public Observable<String> call() {
+                return Observable.from(strings1);
+            }
+        });
+
+        strings1 = strings2; //订阅前把strings给改了
+        observable.subscribe(new Action1<String>() {
+            @Override
+            public void call(String s) {
+                System.out.println("onNext--> " + s);
+            }
+        }, new Action1<Throwable>() {
+            @Override
+            public void call(Throwable throwable) {
+                System.out.println("onError--> " + throwable.getMessage());
+            }
+        }, new Action0() {
+            @Override
+            public void call() {
+                System.out.println("onComplete");
+            }
+        });
+    }
+```
+
+结果：
+
+```rust
+onNext--> Hello
+onNext--> RxJava
+onComplete
+```
+
+从结果可以知道defer操作符起到的是一个“预创建”的作用，真正创建是发生在订阅的时候
+
+#### Range
+
+创建一个发射一组整数序列的Observable
+
+示例代码：
+
+```java
+Observable.range(3, 8)
+        .subscribe(new Action1<Object>() {
+            @Override
+            public void call(Object o) {
+                System.out.println("onNext--> " + o);
+            }
+        }, new Action1<Throwable>() {
+            @Override
+            public void call(Throwable throwable) {
+                System.out.println("onError--> " + throwable.getMessage());
+            }
+        }, new Action0() {
+            @Override
+            public void call() {
+                System.out.println("onComplete");
+            }
+        });
+```
+
+结果：
+
+```rust
+onNext--> 3
+onNext--> 4
+onNext--> 5
+onNext--> 6
+onNext--> 7
+onNext--> 8
+onNext--> 9
+onNext--> 10
+onComplete
+```
+
+#### Empty
+
+创建一个空的，不会发射任何事件（数据）的Observable
+
+示例代码：
+
+```java
+Observable.empty()
+        .subscribe(new Action1<Object>() {
+            @Override
+            public void call(Object o) {
+                System.out.println("onNext--> " + o);
+            }
+        }, new Action1<Throwable>() {
+            @Override
+            public void call(Throwable throwable) {
+                System.out.println("onError--> " + throwable.getMessage());
+            }
+        }, new Action0() {
+            @Override
+            public void call() {
+                System.out.println("onComplete");
+            }
+        });
+```
+
+结果：
+
+```undefined
+onComplete
+```
+
+#### Interval
+
+创建一个无限的计时序列，每隔一段时间发射一个数字（从0开始）的Observable
+
+示例代码：
+
+```java
+   Observable.interval(1, TimeUnit.SECONDS)
+        .subscribe(new Action1<Object>() {
+            @Override
+            public void call(Object o) {
+                System.out.println("onNext--> " + o);
+            }
+        }, new Action1<Throwable>() {
+            @Override
+            public void call(Throwable throwable) {
+                System.out.println("onError--> " + throwable.getMessage());
+            }
+        }, new Action0() {
+            @Override
+            public void call() {
+                System.out.println("onComplete");
+            }
+        });
+
+   System.in.read();//阻塞当前线程，防止JVM结束程序
+```
+
+结果：
+
+```rust
+onNext--> 0
+onNext--> 1
+onNext--> 2
+onNext--> 3
+onNext--> 4
+onNext--> 5
+onNext--> 6
+...
+```
+
+#### FlatMap
+
+`FlatMap`将一个发射数据的Observable变换为多个Observables，然后将它们发射的数据合并后放进一个单独的Observable
+
+![flatMap](https://mcxiaoke.gitbooks.io/rxdocs/content/images/operators/flatMap.png)
+
+`FlatMap`操作符使用一个指定的函数对原始Observable发射的每一项数据执行变换操作，这个函数返回一个本身也发射数据的Observable，然后`FlatMap`合并这些Observables发射的数据，最后将合并后的结果当做它自己的数据序列发射。
+
+这个方法是很有用的，例如，当你有一个这样的Observable：它发射一个数据序列，这些数据本身包含Observable成员或者可以变换为Observable，因此你可以创建一个新的Observable发射这些次级Observable发射的数据的完整集合。
+
+注意：`FlatMap`对这些Observables发射的数据做的是合并(`merge`)操作，因此它们可能是交错的。
+
+![mergeMap](https://mcxiaoke.gitbooks.io/rxdocs/content/images/operators/mergeMap.png)
+
+#### Map
+
+对Observable发射的每一项数据应用一个函数，执行变换操作
+
+![map](https://mcxiaoke.gitbooks.io/rxdocs/content/images/operators/map.png)
+
+`Map`操作符对原始Observable发射的每一项数据应用一个我们写的变换函数，然后返回一个发射这些结果的Observable。
+
+示例代码：
+
+```java
+Observable.create(new ObservableOnSubscribe<Integer>() {
+    @Override
+    public void subscribe(@NonNull ObservableEmitter<Integer> emitter) {
+        emitter.onNext(1);
+    }
+})
+        .map(new Function<Integer, String>() {
+            @Override
+            public String apply(Integer integer) {
+                return integer.toString();
+            }
+        })
+        .subscribe(new Observer<String>() {
+            @Override
+            public void onSubscribe(@NonNull Disposable d) {
+
+            }
+
+            @Override
+            public void onNext(@NonNull String s) {
+                
+            }
+
+
+            @Override
+            public void onError(@NonNull Throwable e) {
+
+            }
+
+            @Override
+            public void onComplete() {
+
+            }
+        });
+```
+
+#### Buffer
+
+将原发射出来的数据已count为单元打包之后在分别发射出来
+
+示例代码
+
+```java
+Observable.just(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+        .buffer(3)
+        .subscribe(new Action1<Object>() {
+            @Override
+            public void call(Object o) {
+                System.out.println("onNext--> " + o);
+            }
+        }, new Action1<Throwable>() {
+            @Override
+            public void call(Throwable throwable) {
+                System.out.println("onError--> " + throwable.getMessage());
+            }
+        }, new Action0() {
+            @Override
+            public void call() {
+                System.out.println("onComplete");
+            }
+        });
+```
+
+结果
+
+```css
+onNext--> [1, 2, 3]
+onNext--> [4, 5, 6]
+onNext--> [7, 8, 9]
+onNext--> [10]
+onComplete
+```
+
+#### Filter
+
+顾名思义 是一个过滤数据的操作符
+
+只发射通过了谓词测试的数据项
+
+![filter](https://mcxiaoke.gitbooks.io/rxdocs/content/images/operators/filter.c.png)
+
+`Filter`操作符使用你指定的一个谓词函数检测数据项，只有通过检测的数据才会被发射。
+
+![filter](https://mcxiaoke.gitbooks.io/rxdocs/content/images/operators/filter.png)
+
+RxJava将这个操作符实现为`filter`函数。
+
+示例代码1:
+
+```java
+Observable.just(1, 2, 3, 4, 5)
+          .filter(new Func1<Integer, Boolean>() {
+              @Override
+              public Boolean call(Integer item) {
+                return( item < 4 );
+              }
+          }).subscribe(new Subscriber<Integer>() {
+        @Override
+        public void onNext(Integer item) {
+            System.out.println("Next: " + item);
+        }
+
+        @Override
+        public void onError(Throwable error) {
+            System.err.println("Error: " + error.getMessage());
+        }
+
+        @Override
+        public void onCompleted() {
+            System.out.println("Sequence complete.");
+        }
+    });
+```
+
+输出
+
+```
+Next: 1
+Next: 2
+Next: 3
+Sequence complete.
+```
+
+示例代码2：
+
+```java
+Observable.just("Hello", "RxJava", "Nice to meet you")
+        .filter(new Func1<String, Boolean>() {
+            @Override
+            public Boolean call(String s) {
+                //这里的显示条件是s的长度大于5，而Hello的长度刚好是5
+                //所以不能满足条件
+                return s.length() > 5;
+            }
+        })
+        .subscribe(new Action1<String>() {
+            @Override
+            public void call(String s) {
+                System.out.println("onNext--> " + s);
+            }
+        }, new Action1<Throwable>() {
+            @Override
+            public void call(Throwable throwable) {
+                System.out.println("onError--> " + throwable.getMessage());
+            }
+        }, new Action0() {
+            @Override
+            public void call() {
+                System.out.println("onComplete");
+            }
+        });
+```
+
+输入2：
+
+```rust
+onNext--> RxJava
+onNext--> Nice to meet you
+onComplete
+```
+
+#### Take
+
+只发射前N项的数据（***takeLast与take想反，只取最后N项数据\***）
+
+```java
+Observable.just("Hello", "RxJava", "Nice to meet you")
+        .take(2)
+        //.taktLast(2)
+        .subscribe(new Action1<String>() {
+            @Override
+            public void call(String s) {
+                System.out.println("onNext--> " + s);
+            }
+        }, new Action1<Throwable>() {
+            @Override
+            public void call(Throwable throwable) {
+                System.out.println("onError--> " + throwable.getMessage());
+            }
+        }, new Action0() {
+            @Override
+            public void call() {
+                System.out.println("onComplete");
+            }
+        });
+    }
+```
+
+```rust
+onNext--> Hello
+onNext--> RxJava
+onComplete
+```
+
+#### Skip
+
+发射数据时忽略前N项数据（***skpiLast忽略后N项数据\***）
+
+```java
+Observable.just("Hello", "RxJava", "Nice to meet you")
+        .skip(2)
+        //.skipLast(2)
+        .subscribe(new Action1<String>() {
+            @Override
+            public void call(String s) {
+                System.out.println("onNext--> " + s);
+            }
+       }, new Action1<Throwable>() {
+            @Override
+            public void call(Throwable throwable) {
+                System.out.println("onError--> " + throwable.getMessage());
+            }
+        }, new Action0() {
+            @Override
+            public void call() {
+                System.out.println("onComplete");
+            }
+        });
+    }
+```
+
+```rust
+onNext--> Nice to meet you
+onComplete
+```
+
+#### ElementAt
+
+获取原数据的第N项数据作为唯一的数据发射出去（***elementAtOrDefault会在index超出范围时，给出一个默认值发射出来\***）
+
+```java
+Observable.just("Hello", "RxJava", "Nice to meet you")
+        .elementAtOrDefault(1, "Great")
+        .subscribe(new Action1<String>() {
+            @Override
+            public void call(String s) {
+                System.out.println("onNext--> " + s);
+            }
+        }, new Action1<Throwable>() {
+            @Override
+            public void call(Throwable throwable) {
+                System.out.println("onError--> " + throwable.getMessage());
+            }
+        }, new Action0() {
+            @Override
+            public void call() {
+                System.out.println("onComplete");
+            }
+        });
+```
+
+```rust
+onNext--> RxJava
+onComplete
+```
+
+#### Distinct
+
+过滤掉重复项
+
+```csharp
+Observable.just("Hello", "Hello", "Hello", "RxJava", "Nice to meet you")
+        .distinct()
+        .subscribe(new Action1<String>() {
+            @Override
+            public void call(String s) {
+                System.out.println("onNext--> " + s);
+            }
+        }, new Action1<Throwable>() {
+            @Override
+            public void call(Throwable throwable) {
+                System.out.println("onError--> " + throwable.getMessage());
+            }
+        }, new Action0() {
+            @Override
+            public void call() {
+                System.out.println("onComplete");
+            }
+        });
+```
+
+```rust
+onNext--> Hello
+onNext--> RxJava
+onNext--> Nice to meet you
+onComplete
+```
+
+#### Merge
+
+将多个Observables发射的数据合并后在发射
+
+```java
+Observable.merge(Observable.just(1, 2, 3), Observable.just(4, 5),
+        Observable.just(6, 7), Observable.just(8, 9, 10))
+        .subscribe(new Action1<Integer>() {
+            @Override
+            public void call(Integer s) {
+                System.out.println("onNext--> " + s);
+            }
+        }, new Action1<Throwable>() {
+            @Override
+            public void call(Throwable throwable) {
+                System.out.println("onError--> " + throwable.getMessage());
+            }
+        }, new Action0() {
+            @Override
+            public void call() {
+                System.out.println("onComplete");
+            }
+        });
+```
+
+```rust
+onNext--> 1
+onNext--> 2
+onNext--> 3
+onNext--> 4
+onNext--> 5
+onNext--> 6
+onNext--> 7
+onNext--> 8
+onNext--> 9
+onNext--> 10
+onComplete
+```
 
 ## RxJava与Retrofit结合
 
@@ -1029,8 +1669,3 @@ RxJavaPlugins.setOnObservableAssembly(new Function<Observable, Observable>() {
 
 
 
-关于RxJava我要讲的就是这些了，由于水平限制可能我讲的并不是很清楚，不是很懂的同学可以后面再看看讲义或者跟着demo自己去跟一遍源码。
-
-github仓库地址
-
-[OkAndGreat/RxJavaTeachDemo (github.com)](https://github.com/OkAndGreat/RxJavaTeachDemo)
